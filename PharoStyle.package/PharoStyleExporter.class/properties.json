@@ -1,0 +1,14 @@
+{
+	"category" : "PharoStyle",
+	"classinstvars" : [
+		 ],
+	"classvars" : [
+		 ],
+	"commentStamp" : "",
+	"instvars" : [
+		 ],
+	"name" : "PharoStyleExporter",
+	"pools" : [
+		 ],
+	"super" : "Object",
+	"type" : "normal" }
