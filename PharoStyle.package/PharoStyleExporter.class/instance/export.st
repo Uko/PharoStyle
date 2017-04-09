@@ -17,6 +17,9 @@ export
 							nextPutAll: '### ';
 							nextPutAll: r name;
 							lf;
-							nextPutAll: r rationale;
-							lf;lf.]
+							nextPutAll: r rationale.
+						
+						self putExamplesOf: r on: str.
+						
+						str lf;lf.]
 						]. ].
