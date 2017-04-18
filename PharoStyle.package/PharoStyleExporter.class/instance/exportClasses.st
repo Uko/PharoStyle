@@ -1,11 +1,10 @@
 as yet unclassified
-export
+exportClasses
 
 	'style.md' asFileReference writeStreamDo: [ :str |
 		str nextPutAll: '# Pharo Style Guidelines'; lf.
 		((RBLintRule allSubclasses
-			select: [ :r | (r checksMethod or: r checksClass) and: [ r isVisible ] 
-				] thenCollect: [ :r | r new ])
+			select: [ :r | r checksClass and: [ r isVisible ] ] thenCollect: [ :r | r new ])
 			groupedBy: [ :r | r group ])
 				valuesDo: [ :group |
 					str
