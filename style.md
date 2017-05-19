@@ -20,6 +20,20 @@ The use of keysDo:/valuesDo: means one intermediate collection created less
 
 ### Method just sends super message
 Check for methods that just forward the message to its superclass.
+#### Good Exmaples
+```
+anExampleGood2	<reExampleGood>	| superValue |	superValue := super anExampleGood2.	^ superValue size
+```
+```
+anExampleGood	<reExampleGood>		^ super anExampleGood asString
+```
+#### Bad Exmaples
+```
+anExampleBad	<reExampleBad>		^ super anExampleBad
+```
+
+### Repeated methods in the trait composition
+If a class has a method in its trait composition, the method should not be implemented in the class.
 
 ### Assignment has no effect
 A statement such as x := x has no effect.
@@ -32,6 +46,14 @@ Checks for the common code fragment: "(aCollection detect: [:each | 'some condit
 
 ### Unnecessary "= true"
 Check for a =, ==, ~=, or ~~ message being sent to true/false or with true/false as the argument.
+#### Good Exmaples
+```
+anExampleGood	<reExampleGood>	| t |		t := true.		^ t ifTrue: [ 'do something' ] ifFalse: [ 'somethign else' ].
+```
+#### Bad Exmaples
+```
+anExampleBad	<reExampleBad>	| t |		t := true.		^ t == true ifTrue: [ 'do something' ] ifFalse: [ 'somethign else' ].
+```
 
 ### Block immediately evaluated
 Check for blocks that are immediately evaluated.
@@ -41,9 +63,6 @@ Checks for common ifTrue: returns that could be simplified using a boolean expre
 
 ### Literal array contains only characters
 Literal arrays containing only characters can more efficiently represented as strings.
-
-### Temporary variables not read AND written
-Checks that all temporary variables are both read and written.
 
 ### Uses or's instead of a searching literal
 Checks for repeated literal equalitity tests that should rather be implemented as a search in a literal collection.
@@ -75,13 +94,6 @@ Checks for ifTrue:ifFalse: blocks that have the same code at the beginning or en
 ### Dead Block
 Dead Block. The block is not assigned, not returned and no message is send to it.Often this is a left over from using blocks to comment out code.
 
-## SUnit Rules
-### Use assert:equals: instead of assert: and =
-Using assert:equals: produces better context on rule failure
-
-### Use assert: instead of should:
-should: will be deprecated sooner or leater. Use assert: instead
-
 ## Bugs Rules
 ### Debugging code left in methods
 Breakpoints, logging statements, etc. should not be left in production code.
@@ -92,20 +104,20 @@ For proper versioning, every method should have a timestamp.
 ### Method source contains linefeeds
 Pharo code should not contain linefeed characters.
 
+### Overrides a "special" message
+Checks that a class does not override a message that is essential to the base system. For example, if you override the #class method from object, you are likely to crash your image. #classShouldNotOverride returns the list of messages which should not be overriden.
+
 ### Messages sent but not implemented
 Checks for messages that are sent by a method, but no class in the system implements such a message. Reported methods will certainly cause a doesNotUnderstand: message when they are executed.
+
+### Subclass responsibility not defined
+Checks that all methods which send #subclassResponsibility, which indicates that they are abstract, are defined in all leaf classes.
 
 ### Sends super new initialize
 Checks for methods that wrongly initialize an object twice. Contrary to other Smalltalk implementations Pharo automatically calls #initiailize on object creation.
 
-### References an undeclared variable
-Checks for references to a undeclared variables
-
 ### Uses True/False instead of true/false
 Checks for uses of the classes True and False instead of the objects true and false.
-
-### Variable used, but not defined anywhere
-This check is similar to the "References an undeclared variable" check, but it looks for variables that are not defined in the class or in the undeclared dictionary. You probably had to work hard to get your code in this state.
 
 ### No direct access of methodDict
 nobody should directly access the method dictionary. It is purely an implementation artefact that we use one dictionary and it might change in the future
@@ -122,6 +134,15 @@ Checks for messages that are sent but not implemented by a global. Reported meth
 ## Potential Bugs Rules
 ### Class-side #initialize should not send "super initialize".
 Don't send super initialize in class side because some class initialize of class of the top of the hierarchy should not be reinitialized.
+
+### Number of addDependent: messages > removeDependent:
+Check that the number of addDependent: message sends in a class is less than or equal to the number of removeDependent: messages. If there are more addDependent: messages that may signify that some dependents are not being released, which may lead to memory leaks.
+
+### Subclass of collection that has instance variable but doesn't define copyEmpty
+Checks that all subclasses of the Collection classes that add an instance variable also redefine the copyEmpty method. This method is used when the collection grows. It copies over the necessary instance variables to the new larger collection.
+
+### Defines = but not hash
+Checks that all classes that define = also define hash.
 
 ### Literal array contains a #true, #false, or #nil but the source doesn't.
 #(true false nil) now is equal to {true. false. nil} not {#true. #false. #nil} as it used to be.
@@ -153,8 +174,19 @@ Checks for any unary "accessing" methods without explicit return statements.
 ### Overrides a deprecated method
 The method overrided a deprecated method. This is a sign that an API has changed in an upstream project and most likely the method should override another one
 
+### Multiple periods terminating the same statement
+A rule to check for multiple periods terminating the same statement, which is unnecessary, probably unintentional, and can cause problems when porting to other platforms like GemStone.
+
 ### Uses A | B = C instead of A | (B = C)
 Checks precedence ordering of & and | with equality operators. Since | and & have the same precedence as =, there are common mistakes where parenthesis are missing around the equality operators.
+#### Good Exmaples
+```
+goodPrecedence	<reExampleGood>	^ self isNil | (self size = 42)
+```
+#### Bad Exmaples
+```
+badPrecedence	<reExampleBad>	^ self isNil | self size = 42
+```
 
 ### Empty exception handler
 Empty exception handler blocks hide potential bugs. The situation should be handled in a more robust way.
@@ -196,29 +228,78 @@ Check for possible uses of the result returned by an add: or addAll: messages. T
 ### Rewrite super messages to self messages
 Rewrite super messages to self messages when both refer to same method
 
+### Class not referenced
+Check if a class is referenced either directly or indirectly by a symbol. If a class is not referenced, it can be removed.
+
 ### Methods equivalently defined in superclass
 Check for methods that are equivalent to their superclass methods.
+#### Good Exmaples
+```
+aMethod	^false.
+```
+#### Bad Exmaples
+```
+aMethod	^true.
+```
 
 ### Excessive number of arguments
 Long argument lists (five or more) can indicate that a new object should be created to wrap the numerous parameters.
+
+### Excessive inheritance depth
+Deep inheritance (10+ depth) is usually a sign of a design flaw.
+
+### Excessive number of methods
+Large classes are indications that the class may be trying to do too much.
+
+### Excessive number of variables
+Classes that have too many instance variables (10+) could be redesigned to have fewer fields, possibly through some nested object grouping.
 
 ### Methods implemented but not sent
 Check for methods that are never sent. If a method is not sent, it can be removed.
 
 ### Inconsistent method classification
 All methods should be put into a protocol (method category) that is equivalent to the one of the superclass, which is a Smalltalk style convention.
+#### Good Exmaples
+```
+aMethod	^'something'.
+```
+#### Bad Exmaples
+```
+aMethod	^'something'.
+```
+
+### Same instance variable defined in ALL subclasses
+All subclasses of this class define the same variable. Most likely this variable should be pulled up to the superclass.
+#### Good Exmaples
+Object subclass: ExampleInstVarInSubclassesSuperclassGood<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;instanceVariableNames: ''<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;classVariableNames: ''<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;poolDictionaries: ''<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;category: 'Renraku-Test-Classes'
+#### Bad Exmaples
+Object subclass: ExampleInstVarInSubclassesSuperclassBad<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;instanceVariableNames: ''<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;classVariableNames: ''<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;poolDictionaries: ''<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;category: 'Renraku-Test-Classes'
 
 ### Long methods
 Returns all methods that have #longMethodSize number of statements. This check counts statements, not lines.
 
+### Method defined in all subclasses, but not in superclass
+This smell arises when a class defines a method in all subclasses, but not in itself as an abstract method. Such methods should most likely be defined as subclassResponsibility methods. Furthermore, this check helps to find similar code that might be occurring in all the subclasses that should be pulled up into the superclass.
+
 ### Refers to class name instead of "self class"
 Checks for direct reference to classes themselves.
+#### Good Exmaples
+```
+anExampleGood	<reExampleGood>		^ self name.
+```
+#### Bad Exmaples
+```
+anExampleBad	<reExampleBad>		^RBRefersToClassRule name.
+```
 
 ### Sends different super message
 Checks for methods whose source sends a different super message.
 
 ### Utility methods
 List methods that have one or more arguments and do no refer to self or an instance variable. These methods might be better defined in some other class or as class methods.
+
+### Variable referenced in only one method and always assigned first
+Checks for instance variables that might better be defined as temporary variables.
 
 ### Sends a deprecated message to a known global
 Checks for sends of deprecated messages that might be removed in upcoming releases of Pharo.
@@ -241,9 +322,6 @@ Replaces detect:ifNone: and contains: by anySatisfy:
 
 ### = nil -> isNil AND ~= nil -> notNil
 Replaces = nil and == nil by isNil, ~= nil and ~~ nil by notNil to make the code more readable.  
-
-### Replace single branch conditional with guard clause
-Transforms single branch conditionals with multi-statement bodies into a sequence of statements guarded by a conditional return.
 
 ### Rewrite ifTrue:ifFalse: using min:/max:
 The use of the messages #min: and #max: improves code readability and avoids heavily nested conditionals.
@@ -268,6 +346,23 @@ Check methods that send messages that perform low level things.
 
 ### Literal array contains a #,
 Checks for literal arrays that contain the #, symbol. The user may have thought that it was a separator.
+
+### No class comment
+Classes should have comments to explain their purpose, collaborations with other classes, and optionally provide examples of use.
+#### Good Exmaples
+Object subclass: ExampleClassWithComment<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;instanceVariableNames: ''<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;classVariableNames: ''<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;poolDictionaries: ''<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;category: 'Renraku-Test-Classes'"This class is a good example for a class with a comment"
+
+#### Bad Exmaples
+Object subclass: ExampleClassWithNoComment<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;instanceVariableNames: ''<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;classVariableNames: ''<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;poolDictionaries: ''<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;category: 'Renraku-Test-Classes'
+
+### Explicit requirement methods
+Classes that use traits with explicit requirement methods should either implement the method or inherit it.
+
+### Rule does not define #basicCheck:
+Each rule should define a #basicCheck: method which accepts an entity to be validated by the rule.If the entity violates the rule, method should ruturn "true", otherwise - "false".It is recommended to reuse #basicCheck: functionality in #checkClass: and #checkMethod:
+
+### Rule does not define entity compliance
+You should override on the CLASS SIDE at least one of #checksMethod, #checksClass, #checksPackage methods to return true and so indicate which entities can be checked by your rule.
 
 ### Unnecessary assignment or return in block
 Checks ensure:, ifCurtailed:, and showWhile: blocks for assignments or returns that are the last statement in the block. These assignments or returns can be moved outside the block since these messages return the value of the block.
@@ -308,9 +403,6 @@ Use uncapitalized instead of withFirstCharacterDownshifted since withFirstCharac
 
 ### Redundant class name in selector
 Checks for the class name in a selector. This is redundant since to call the you must already refer to the class name. For example, openHierarchyBrowserFrom: is a redundant name for HierarchyBrowser. Avoiding selector including class name gives a chance to have more polymorphic methods.
-
-### Temporary variable capitalization
-Temporary and argument variable names should start with a lowercase letter.
 
 ### Unclassified methods
 All methods should be put into a protocol (method category) for better readability.
